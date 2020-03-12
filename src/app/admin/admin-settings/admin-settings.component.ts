@@ -1,33 +1,35 @@
-import { Component, OnInit, OnDestroy } from "@angular/core";
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { GlobalSettingsService } from 'src/app/core/global-settings.service';
+import { OnZoom } from 'src/app/core/OnZoom';
 import { AdminSettingsService } from '../services/admin-settings.service';
-import { OnZoom } from '../services/OnZoom';
 
 @Component({
-  selector: "app-admin-settings",
-  templateUrl: "./admin-settings.component.html",
-  styleUrls: ["./admin-settings.component.css"]
+  selector: 'app-admin-settings',
+  templateUrl: './admin-settings.component.html',
+  styleUrls: ['./admin-settings.component.css']
 })
 export class AdminSettingsComponent implements OnInit, OnDestroy, OnZoom {
-
   public drawDisabled: boolean;
 
   public zoom: number;
 
-  constructor(private settings: AdminSettingsService) {}
+  constructor(
+    private settings: GlobalSettingsService,
+    private adminSettings: AdminSettingsService
+  ) {}
 
   ngOnInit(): void {
-    this.drawDisabled = !this.settings.isDrawingEnabled();
+    this.drawDisabled = !this.adminSettings.isDrawingEnabled();
     this.zoom = this.settings.getScale();
-    this.settings.addZoomListener(this);
+    this.settings.addListener(this);
   }
 
   ngOnDestroy(): void {
-    this.settings.removeZoomListener(this);
+    this.settings.removeListener(this);
   }
 
-
   public onChange(): void {
-    this.settings.setDrawingEnabled(!this.drawDisabled);
+    this.adminSettings.setDrawingEnabled(!this.drawDisabled);
   }
 
   public onChangeZoom(zoom: number): void {

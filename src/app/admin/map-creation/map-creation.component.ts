@@ -5,21 +5,24 @@ import {
   ElementRef,
   AfterViewInit,
   OnDestroy
-} from "@angular/core";
-import Konva from "konva";
-import { ShapeService } from "../../core/shape.service";
-import { AdminSettingsService } from "../services/admin-settings.service";
-import { OnZoom } from "../services/OnZoom";
-import { Vector2d } from "konva/types/types";
+} from '@angular/core';
+import Konva from 'konva';
+import { ShapeService } from '../../core/shape.service';
+import { GlobalSettingsService } from '../../core/global-settings.service';
+import { OnZoom } from '../../core/OnZoom';
+import { Vector2d } from 'konva/types/types';
+import { AdminSettingsService } from '../services/admin-settings.service';
+import { ScrollService } from 'src/app/core/scroll.service';
+import { OnScroll } from 'src/app/core/OnScroll';
 
 @Component({
-  selector: "app-map-creation",
-  templateUrl: "./map-creation.component.html",
-  styleUrls: ["./map-creation.component.css"]
+  selector: 'app-map-creation',
+  templateUrl: './map-creation.component.html',
+  styleUrls: ['./map-creation.component.css']
 })
 export class MapCreationComponent
-  implements OnInit, OnDestroy, AfterViewInit, OnZoom {
-  @ViewChild("container") container: ElementRef;
+  implements OnInit, OnDestroy, AfterViewInit, OnZoom, OnScroll {
+  @ViewChild('container') container: ElementRef;
 
   shapes: Konva.Shape[] = [];
   transformers: Konva.Transformer[] = [];
@@ -32,26 +35,30 @@ export class MapCreationComponent
 
   constructor(
     private shapeService: ShapeService,
-    private settings: AdminSettingsService
+    private settings: GlobalSettingsService,
+    private adminSettings: AdminSettingsService,
+    private scroll: ScrollService
   ) {}
 
   ngOnInit() {
-    this.settings.addZoomListener(this);
+    this.settings.addListener(this);
+    this.scroll.addListener(this);
   }
 
   ngOnDestroy() {
-    this.settings.removeZoomListener(this);
+    this.settings.removeListener(this);
+    this.scroll.removeListener(this);
   }
 
   ngAfterViewInit() {
     this.stage = new Konva.Stage({
-      container: "stage",
+      container: 'stage',
       width: this.container.nativeElement.offsetWidth,
       height: this.container.nativeElement.offsetHeight
     });
     this.stage.add(this.baseLayer);
 
-    Konva.Image.fromURL("/assets/images/dungeon.png", dungeonNode => {
+    Konva.Image.fromURL('/assets/images/dungeon.png', dungeonNode => {
       console.log(dungeonNode);
       const imageWidth = dungeonNode.attrs.image.width;
       const imageHeight = dungeonNode.attrs.image.height;
@@ -92,8 +99,8 @@ export class MapCreationComponent
       this.stage.add(this.drawingLayer);
       this.drawingLayer.batchDraw();
 
-      this.drawScroll();
-      this.scrolWheel();
+      this.scroll.init(this.stage);
+      this.wheelZoom();
     });
   }
 
@@ -132,23 +139,23 @@ export class MapCreationComponent
   }
 
   private bindDrawingEvent(drawingLayer: Konva.Node) {
-    drawingLayer.on("mousedown touchstart", event => {
+    drawingLayer.on('mousedown touchstart', event => {
       if (this.drawing) {
         // we went out of box drawing so end now
         this.endDraw();
-      } else if (this.settings.isDrawingEnabled()) {
+      } else if (this.adminSettings.isDrawingEnabled()) {
         this.drawing = true;
         var mousePos = this.stage.getPointerPosition();
         this.drawData.startX = mousePos.x;
         this.drawData.startY = mousePos.y;
       }
     });
-    drawingLayer.on("mouseup touchend", event => {
+    drawingLayer.on('mouseup touchend', event => {
       if (this.drawing) {
         this.endDraw();
       }
     });
-    drawingLayer.on("mousemove touchmove", event => {
+    drawingLayer.on('mousemove touchmove', event => {
       if (this.drawing) {
         var pos = this.stage.getPointerPosition();
         if (!this.drawData.rect) {
@@ -157,8 +164,8 @@ export class MapCreationComponent
             y: this.drawData.startY,
             width: pos.x - this.drawData.startX,
             height: pos.y - this.drawData.startY,
-            fill: "#FFFFFF99",
-            stroke: "#424242",
+            fill: '#FFFFFF99',
+            stroke: '#424242',
             strokeWidth: 2
           });
         } else {
@@ -178,9 +185,16 @@ export class MapCreationComponent
     this.baseLayer.batchDraw();
   }
 
-  private scrolWheel(): void {
+  public onScrollChange(position: Vector2d) {
+    console.log(position);
+    this.baseLayer.x(-position.x);
+    this.baseLayer.y(-position.y);
+    this.baseLayer.batchDraw();
+  }
+
+  private wheelZoom(): void {
     const scaleBy = 0.1;
-    this.stage.on("wheel", e => {
+    this.stage.on('wheel', e => {
       e.evt.preventDefault();
       var oldScale = this.baseLayer.scaleX();
 
@@ -213,84 +227,6 @@ export class MapCreationComponent
       this.baseLayer.position(newPos);
       this.baseLayer.batchDraw();
       this.settings.setScale(newScale);
-    });
-  }
-
-  private drawScroll(): void {
-    var scrollLayers = new Konva.Layer();
-    this.stage.add(scrollLayers);
-
-    const PADDING = 2;
-
-    var verticalBar = new Konva.Rect({
-      width: 10,
-      height: 100,
-      fill: "grey",
-      opacity: 0.7,
-      x: this.stage.width() - PADDING - 10,
-      y: PADDING,
-      draggable: true,
-      dragBoundFunc: pos => {
-        pos.x = this.stage.width() - PADDING - 10;
-        pos.y = Math.max(
-          Math.min(pos.y, this.stage.height() - 100 - PADDING),
-          PADDING
-        );
-        return pos;
-      }
-    });
-    scrollLayers.add(verticalBar);
-    scrollLayers.draw();
-
-    verticalBar.on("dragmove", () => {
-      // delta in %
-      const availableHeight =
-        this.stage.height() - PADDING * 2 - verticalBar.height();
-      var delta = (verticalBar.y() - PADDING) / availableHeight;
-
-      const position =
-        Math.max(
-          0,
-          this.stage.height() * this.settings.getScale() - this.stage.height()
-        ) * delta;
-      this.baseLayer.y(-position);
-      this.baseLayer.batchDraw();
-    });
-
-    var horizontalBar = new Konva.Rect({
-      width: 100,
-      height: 10,
-      fill: "grey",
-      opacity: 0.7,
-      x: PADDING,
-      y: this.stage.height() - PADDING - 10,
-      draggable: true,
-      dragBoundFunc: pos => {
-        pos.x = Math.max(
-          Math.min(pos.x, this.stage.width() - 100 - PADDING),
-          PADDING
-        );
-        pos.y = this.stage.height() - PADDING - 10;
-
-        return pos;
-      }
-    });
-    scrollLayers.add(horizontalBar);
-    scrollLayers.draw();
-
-    horizontalBar.on("dragmove", () => {
-      // delta in %
-      const availableWidth =
-        this.stage.width() - PADDING * 2 - horizontalBar.width();
-      var delta = (horizontalBar.x() - PADDING) / availableWidth;
-
-      const position =
-        Math.max(
-          0,
-          this.stage.width() * this.settings.getScale() - this.stage.width()
-        ) * delta;
-      this.baseLayer.x(-position);
-      this.baseLayer.batchDraw();
     });
   }
 }
