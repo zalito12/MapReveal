@@ -1,27 +1,20 @@
-import {
-  Component,
-  OnInit,
-  ViewChild,
-  ElementRef,
-  AfterViewInit,
-  OnDestroy
-} from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef, AfterViewInit, OnDestroy } from '@angular/core';
 import Konva from 'konva';
-import { ShapeService } from '../../core/shape.service';
-import { GlobalSettingsService } from '../../core/global-settings.service';
 import { OnZoom } from '../../core/OnZoom';
 import { Vector2d } from 'konva/types/types';
 import { AdminSettingsService } from '../services/admin-settings.service';
 import { ScrollService } from 'src/app/core/scroll.service';
 import { OnScroll } from 'src/app/core/OnScroll';
+import { LayerService } from 'src/app/core/layer.service';
+import { GlobalSettingsService } from 'src/app/core/global-settings.service';
+import { SpeakerService } from 'src/app/core/speaker.service';
 
 @Component({
   selector: 'app-map-creation',
   templateUrl: './map-creation.component.html',
   styleUrls: ['./map-creation.component.css']
 })
-export class MapCreationComponent
-  implements OnInit, OnDestroy, AfterViewInit, OnZoom, OnScroll {
+export class MapCreationComponent implements OnInit, OnDestroy, AfterViewInit, OnZoom, OnScroll {
   @ViewChild('container') container: ElementRef;
 
   shapes: Konva.Shape[] = [];
@@ -29,25 +22,29 @@ export class MapCreationComponent
 
   private stage: Konva.Stage;
   private baseLayer = new Konva.Layer();
-  private drawingLayer: Konva.Layer;
+  private drawingLayer = new Konva.Layer();
+  private roomLayer = new Konva.FastLayer();
 
   private mapStartigPos: Vector2d;
 
+  private position: Vector2d;
+
   constructor(
-    private shapeService: ShapeService,
-    private settings: GlobalSettingsService,
-    private adminSettings: AdminSettingsService,
-    private scroll: ScrollService
+    private speakerService: SpeakerService,
+    private layerService: LayerService,
+    private scrollService: ScrollService,
+    private globalSettings: GlobalSettingsService,
+    private adminSettings: AdminSettingsService
   ) {}
 
   ngOnInit() {
-    this.settings.addListener(this);
-    this.scroll.addListener(this);
+    this.speakerService.addZoomListener(this);
+    this.speakerService.addScrollListener(this);
   }
 
   ngOnDestroy() {
-    this.settings.removeListener(this);
-    this.scroll.removeListener(this);
+    this.speakerService.removeZoomListener(this);
+    this.speakerService.removeScrollListener(this);
   }
 
   ngAfterViewInit() {
@@ -56,22 +53,15 @@ export class MapCreationComponent
       width: this.container.nativeElement.offsetWidth,
       height: this.container.nativeElement.offsetHeight
     });
-    this.stage.add(this.baseLayer);
 
     Konva.Image.fromURL('/assets/images/dungeon.png', dungeonNode => {
-      console.log(dungeonNode);
       const imageWidth = dungeonNode.attrs.image.width;
       const imageHeight = dungeonNode.attrs.image.height;
       const scale = this.computeScale(imageWidth, imageHeight);
+
       this.mapStartigPos = {
-        x:
-          imageWidth * scale < this.stage.width()
-            ? (this.stage.width() - imageWidth * scale) / 2
-            : 0,
-        y:
-          imageHeight * scale < this.stage.height()
-            ? this.stage.height() / 2
-            : 0
+        x: imageWidth * scale < this.stage.width() ? (this.stage.width() - imageWidth * scale) / 2 : 0,
+        y: imageHeight * scale < this.stage.height() ? (this.stage.height() - imageHeight * scale) / 2 : 0
       };
       dungeonNode.setAttrs({
         x: this.mapStartigPos.x,
@@ -80,11 +70,8 @@ export class MapCreationComponent
         scaleX: scale,
         scaleY: scale
       });
-      console.log(dungeonNode);
       this.baseLayer.add(dungeonNode);
-      this.baseLayer.batchDraw();
 
-      this.drawingLayer = new Konva.Layer();
       const rect = new Konva.Rect({
         x: this.mapStartigPos.x,
         y: this.mapStartigPos.y,
@@ -96,11 +83,23 @@ export class MapCreationComponent
 
       this.bindDrawingEvent(rect);
       this.drawingLayer.add(rect);
+
+      this.stage.add(this.baseLayer);
+      this.stage.add(this.roomLayer);
       this.stage.add(this.drawingLayer);
+
+      this.baseLayer.batchDraw();
       this.drawingLayer.batchDraw();
 
-      this.scroll.init(this.stage);
-      this.wheelZoom();
+      this.layerService.setStage(this.stage);
+      this.layerService.setBaseLayer(this.baseLayer);
+      this.layerService.setRoomLayer(this.roomLayer);
+      this.layerService.setDrawingLayer(this.drawingLayer);
+
+      this.scrollService.init();
+      if (this.globalSettings.getScrollAction() === 'Zoom') {
+        this.globalSettings.setWheelZoomListener();
+      }
     });
   }
 
@@ -132,14 +131,16 @@ export class MapCreationComponent
       var pos = this.stage.getPointerPosition();
       this.drawData.rect.width(pos.x - this.drawData.startX);
       this.drawData.rect.height(pos.y - this.drawData.startY);
-      this.baseLayer.add(this.drawData.rect);
-      this.baseLayer.batchDraw();
+      this.roomLayer.add(this.drawData.rect);
+      this.roomLayer.batchDraw();
+
+      this.shapes.push(this.getNormalizedDrawn(this.drawData.rect));
       this.drawData.rect = null;
     }
   }
 
-  private bindDrawingEvent(drawingLayer: Konva.Node) {
-    drawingLayer.on('mousedown touchstart', event => {
+  private bindDrawingEvent(drawingNode: Konva.Node) {
+    drawingNode.on('mousedown touchstart', event => {
       if (this.drawing) {
         // we went out of box drawing so end now
         this.endDraw();
@@ -150,12 +151,12 @@ export class MapCreationComponent
         this.drawData.startY = mousePos.y;
       }
     });
-    drawingLayer.on('mouseup touchend', event => {
+    drawingNode.on('mouseup touchend', event => {
       if (this.drawing) {
         this.endDraw();
       }
     });
-    drawingLayer.on('mousemove touchmove', event => {
+    drawingNode.on('mousemove touchmove', event => {
       if (this.drawing) {
         var pos = this.stage.getPointerPosition();
         if (!this.drawData.rect) {
@@ -166,67 +167,64 @@ export class MapCreationComponent
             height: pos.y - this.drawData.startY,
             fill: '#FFFFFF99',
             stroke: '#424242',
-            strokeWidth: 2
+            strokeWidth: 3
           });
         } else {
           this.drawData.rect.width(pos.x - this.drawData.startX);
           this.drawData.rect.height(pos.y - this.drawData.startY);
         }
-        this.baseLayer.add(this.drawData.rect);
-        this.baseLayer.batchDraw();
+        this.roomLayer.add(this.drawData.rect);
+        this.roomLayer.batchDraw();
       }
     });
   }
 
   public onZoomChange(scale: number) {
-    console.log(scale);
     this.baseLayer.scaleX(scale);
     this.baseLayer.scaleY(scale);
     this.baseLayer.batchDraw();
+
+    this.drawingLayer.scaleX(scale);
+    this.drawingLayer.scaleY(scale);
+    this.drawingLayer.batchDraw();
+
+    this.redrawRooms();
   }
 
   public onScrollChange(position: Vector2d) {
-    console.log(position);
-    this.baseLayer.x(-position.x);
-    this.baseLayer.y(-position.y);
+    this.position = position;
+    this.baseLayer.position(position);
+    this.drawingLayer.position(position);
     this.baseLayer.batchDraw();
+    this.drawingLayer.batchDraw();
+
+    this.redrawRooms();
   }
 
-  private wheelZoom(): void {
-    const scaleBy = 0.1;
-    this.stage.on('wheel', e => {
-      e.evt.preventDefault();
-      var oldScale = this.baseLayer.scaleX();
+  private redrawRooms() {
+    const scale = this.globalSettings.getZoom();
+    const offset = this.position;
+    this.roomLayer.destroyChildren();
+    this.shapes.forEach(shape => {
+      const rect = shape.clone({
+        width: shape.width() * scale,
+        height: shape.height() * scale,
+        x: shape.x() * scale + offset.x,
+        y: shape.y() * scale + offset.y
+      });
+      this.roomLayer.add(rect);
+    });
+    this.roomLayer.batchDraw();
+  }
 
-      var mousePointTo = {
-        x:
-          this.stage.getPointerPosition().x / oldScale -
-          this.baseLayer.x() / oldScale,
-        y:
-          this.stage.getPointerPosition().y / oldScale -
-          this.baseLayer.y() / oldScale
-      };
-
-      var newScale = e.evt.deltaY < 0 ? oldScale + scaleBy : oldScale - scaleBy;
-      if (newScale < 0.5) {
-        newScale = 0.5;
-      } else if (newScale > 5) {
-        newScale = 5;
-      }
-
-      var newPos = {
-        x:
-          -(mousePointTo.x - this.stage.getPointerPosition().x / newScale) *
-          newScale,
-        y:
-          -(mousePointTo.y - this.stage.getPointerPosition().y / newScale) *
-          newScale
-      };
-
-      this.baseLayer.scale({ x: newScale, y: newScale });
-      this.baseLayer.position(newPos);
-      this.baseLayer.batchDraw();
-      this.settings.setScale(newScale);
+  private getNormalizedDrawn(shape: Konva.Shape): Konva.Shape {
+    const fixScale = 1 / this.globalSettings.getZoom();
+    const offset = this.position;
+    return shape.clone({
+      width: this.drawData.rect.width() * fixScale,
+      height: this.drawData.rect.height() * fixScale,
+      x: this.drawData.rect.x() * fixScale - offset.x * fixScale,
+      y: this.drawData.rect.y() * fixScale - offset.y * fixScale
     });
   }
 }

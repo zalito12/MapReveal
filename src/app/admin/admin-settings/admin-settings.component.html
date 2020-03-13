@@ -8,19 +8,30 @@
         >
       </mat-list-item>
       <mat-list-item>
+      <mat-slide-toggle [(ngModel)]="zoomOnScroll" (change)="onChange()">Zoom on scroll</mat-slide-toggle>
+    </mat-list-item>
+      <mat-list-item>
         <mat-icon class="icon-button" matRipple (click)="zoomOut()"
           >zoom_out</mat-icon
         >
         <mat-slider
-          min="0.5"
-          max="5"
-          step="0.1"
+          [min]="zoomMin"
+          [max]="zoomMax"
+          [step]="zoomStep"
           [(ngModel)]="zoom"
           (input)="onChangeZoom($event.value)"
         ></mat-slider>
         <mat-icon class="icon-button" matRipple (click)="zoomIn()"
           >zoom_in</mat-icon
         >
+        <mat-icon
+          class="icon-button"
+          matRipple
+          *ngIf="zoom !== 1"
+          (click)="zoomReset()"
+          >refresh</mat-icon
+        >
+        <mat-icon *ngIf="zoom === 1"></mat-icon>
       </mat-list-item>
     </mat-list>
   </mat-card-content>

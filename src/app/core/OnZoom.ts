@@ -1,5 +1,3 @@
-import { Listener } from './listener';
-
-export interface OnZoom extends Listener {
+export interface OnZoom {
   onZoomChange(scale: number);
 }
