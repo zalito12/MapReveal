@@ -1,0 +1,33 @@
+.buttons {
+  margin-top: 1rem;
+}
+
+.buttons button {
+  margin-right: 0.4rem;
+}
+
+.file-label {
+  margin: 1rem;
+  font-weight: bold;
+}
+
+#container {
+  width: 100%;
+}
+
+#stage {
+  background: rgb(223, 223, 223);
+}
+
+
+app-map-creation {
+  position: absolute;
+  width: 100%;
+  height: calc(100% - 64px);
+}
+
+@media (max-width: 599px) {
+  app-map-creation {
+    height: calc(100% - 56px);
+  }
+}

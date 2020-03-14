@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, ElementRef, AfterViewInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef, AfterViewInit, OnDestroy, Input, HostListener } from '@angular/core';
 import Konva from 'konva';
 import { OnZoom } from '../../core/OnZoom';
 import { Vector2d } from 'konva/types/types';
@@ -15,7 +15,10 @@ import { SpeakerService } from 'src/app/core/speaker.service';
   styleUrls: ['./map-creation.component.css']
 })
 export class MapCreationComponent implements OnInit, OnDestroy, AfterViewInit, OnZoom, OnScroll {
-  @ViewChild('container') container: ElementRef;
+  @Input('fileSrc') public fileSrc: string = null;
+
+  @ViewChild('container', { read: ElementRef }) container: ElementRef;
+  private containerStartingSize = { width: 0, height: 0 };
 
   shapes: Konva.Shape[] = [];
   transformers: Konva.Transformer[] = [];
@@ -48,13 +51,25 @@ export class MapCreationComponent implements OnInit, OnDestroy, AfterViewInit, O
   }
 
   ngAfterViewInit() {
+    this.containerStartingSize = {
+      width: this.container.nativeElement.offsetWidth,
+      height: this.container.nativeElement.offsetHeight
+    };
     this.stage = new Konva.Stage({
       container: 'stage',
       width: this.container.nativeElement.offsetWidth,
       height: this.container.nativeElement.offsetHeight
     });
 
-    Konva.Image.fromURL('/assets/images/dungeon.png', dungeonNode => {
+    if (!this.fileSrc) {
+      this.generateStage('/assets/images/dungeon.png');
+    } else {
+      this.generateStage(this.fileSrc);
+    }
+  }
+
+  public generateStage(imageSrc: string) {
+    Konva.Image.fromURL(imageSrc, dungeonNode => {
       const imageWidth = dungeonNode.attrs.image.width;
       const imageHeight = dungeonNode.attrs.image.height;
       const scale = this.computeScale(imageWidth, imageHeight);
@@ -65,7 +80,6 @@ export class MapCreationComponent implements OnInit, OnDestroy, AfterViewInit, O
       };
       dungeonNode.setAttrs({
         x: this.mapStartigPos.x,
-
         y: this.mapStartigPos.y,
         scaleX: scale,
         scaleY: scale
@@ -100,7 +114,26 @@ export class MapCreationComponent implements OnInit, OnDestroy, AfterViewInit, O
       if (this.globalSettings.getScrollAction() === 'Zoom') {
         this.globalSettings.setWheelZoomListener();
       }
+
+      this.fitStageIntoParentContainer();
     });
+  }
+
+  @HostListener('window:resize', ['$event'])
+  onResize(_event: any) {
+    this.fitStageIntoParentContainer();
+  }
+
+  private fitStageIntoParentContainer() {
+    // now we need to fit stage into parent
+    var containerWidth = this.container.nativeElement.offsetWidth;
+    var containerHeight= this.container.nativeElement.offsetHeight;
+    // to do this we need to scale the stage
+    var scale = Math.min(containerWidth / this.containerStartingSize.width, containerHeight / this.containerStartingSize.height);
+    this.stage.width(this.containerStartingSize.width * scale);
+    this.stage.height(this.containerStartingSize.height * scale);
+    this.stage.scale({ x: scale, y: scale });
+    this.stage.draw();
   }
 
   private computeScale(imageWidth: number, imageHeight: number): number {
@@ -128,7 +161,7 @@ export class MapCreationComponent implements OnInit, OnDestroy, AfterViewInit, O
   private endDraw() {
     this.drawing = false;
     if (this.drawData.rect) {
-      var pos = this.stage.getPointerPosition();
+      var pos = this.getRelativePointerPosition(this.roomLayer);
       this.drawData.rect.width(pos.x - this.drawData.startX);
       this.drawData.rect.height(pos.y - this.drawData.startY);
       this.roomLayer.add(this.drawData.rect);
@@ -139,6 +172,19 @@ export class MapCreationComponent implements OnInit, OnDestroy, AfterViewInit, O
     }
   }
 
+  private getRelativePointerPosition(node) {
+    // the function will return pointer position relative to the passed node
+    var transform = node.getAbsoluteTransform().copy();
+    // to detect relative position we need to invert transform
+    transform.invert();
+
+    // get pointer (say mouse or touch) position
+    var pos = node.getStage().getPointerPosition();
+
+    // now we find relative point
+    return transform.point(pos);
+  }
+
   private bindDrawingEvent(drawingNode: Konva.Node) {
     drawingNode.on('mousedown touchstart', event => {
       if (this.drawing) {
@@ -146,7 +192,7 @@ export class MapCreationComponent implements OnInit, OnDestroy, AfterViewInit, O
         this.endDraw();
       } else if (this.adminSettings.isDrawingEnabled()) {
         this.drawing = true;
-        var mousePos = this.stage.getPointerPosition();
+        var mousePos = this.getRelativePointerPosition(this.roomLayer);
         this.drawData.startX = mousePos.x;
         this.drawData.startY = mousePos.y;
       }
@@ -158,7 +204,7 @@ export class MapCreationComponent implements OnInit, OnDestroy, AfterViewInit, O
     });
     drawingNode.on('mousemove touchmove', event => {
       if (this.drawing) {
-        var pos = this.stage.getPointerPosition();
+        var pos = this.getRelativePointerPosition(this.roomLayer);
         if (!this.drawData.rect) {
           this.drawData.rect = new Konva.Rect({
             x: this.drawData.startX,

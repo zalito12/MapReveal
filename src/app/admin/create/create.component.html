@@ -1,0 +1,61 @@
+<app-admin-page>
+  <section>
+    <div *ngIf="type === 'image'">
+      <form [formGroup]="formGroup" (submit)="save()">
+        <mat-horizontal-stepper linear>
+          <mat-step label="New map" [stepControl]="this.formGroup.get('name')">
+            <p>Set a name to save map in your library.</p>
+            <mat-form-field class="example-full-width">
+              <mat-label>Name</mat-label>
+              <input matInput type="text" placeholder="Deadly dungeon" formControlName="name" required />
+            </mat-form-field>
+            <div>
+              <button type="button" mat-stroked-button color="primary" matStepperNext>Next</button>
+            </div>
+          </mat-step>
+          <mat-step label="Select image" [stepControl]="this.formGroup.get('file')">
+            <p>Browse your dungeon map image. Then you can configure overlay, map and interaction settings.</p>
+            <button type="button" mat-raised-button color="primary" (click)="fileInput.click()">Choose File</button>
+            <span class="file-label" *ngIf="file">{{ file.name }}</span>
+            <input
+              #fileInput
+              hidden
+              required
+              (change)="onFileSelected()"
+              type="file"
+              id="file"
+              formControlName="file"
+            />
+            <div class="buttons">
+              <button mat-button matStepperPrevious type="button">Back</button>
+              <button type="button" mat-stroked-button color="primary" matStepperNext>Next</button>
+            </div>
+          </mat-step>
+          <mat-step label="Configure" formGroupName="stepThree" [stepControl]="this.formGroup.get('stepThree')">
+            <p>Configure your map options.</p>
+            <p>
+              <mat-form-field class="example-full-width">
+                <mat-label>Overlay color</mat-label>
+                <input matInput type="color" value="#000000" formControlName="color" required />
+              </mat-form-field>
+            </p>
+            <p>
+              <mat-checkbox formControlName="touchAlert">Alert on players touch</mat-checkbox>
+            </p>
+            <p>
+              <mat-checkbox formControlName="write">Allow write</mat-checkbox>
+            </p>
+            <div class="buttons">
+              <button mat-button matStepperPrevious type="button">Back</button>
+              <button mat-flat-button type="submit" color="primary" matStepperNext [disabled]="!formGroup.valid">
+                Save
+              </button>
+            </div>
+          </mat-step>
+        </mat-horizontal-stepper>
+      </form>
+    </div>
+    <div *ngIf="type !== 'image'"></div>
+    <app-map-creation *ngIf="fileSrc" [fileSrc]="fileSrc"></app-map-creation>
+  </section>
+</app-admin-page>

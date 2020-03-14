@@ -1,0 +1,13 @@
+section {
+  margin: 0.5rem;
+  display: flex;
+  flex-flow: row;
+  flex-direction: row;
+  place-items: flex-start;
+  justify-content: space-around;
+  align-items: flex-start;
+}
+mat-card {
+  width: calc(33% - 1rem);
+  margin: 0.5em;
+}
