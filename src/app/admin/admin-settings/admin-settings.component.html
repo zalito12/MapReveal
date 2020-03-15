@@ -1,27 +1,25 @@
-<mat-card class="example-card">
-  <mat-card-title>Settings</mat-card-title>
-  <mat-card-content>
-    <mat-list>
-      <mat-list-item>
-        <mat-checkbox [(ngModel)]="drawDisabled" (change)="onChange()">Disable draw</mat-checkbox>
-      </mat-list-item>
-      <mat-list-item>
-        <mat-slide-toggle [(ngModel)]="zoomOnScroll" (change)="onChange()">Zoom on scroll</mat-slide-toggle>
-      </mat-list-item>
-      <mat-list-item>
-        <button mat-icon-button class="icon-button" (click)="zoomOut()"><mat-icon>zoom_out</mat-icon></button>
-        <mat-slider
-          [min]="zoomMin"
-          [max]="zoomMax"
-          [step]="zoomStep"
-          [(ngModel)]="zoom"
-          (input)="onChangeZoom($event.value)"
-        ></mat-slider>
-        <button mat-icon-button class="icon-button" (click)="zoomIn()"><mat-icon>zoom_in</mat-icon></button>
-        <button mat-icon-button class="icon-button" [disabled]="zoom === 1" (click)="zoomReset()">
-          <mat-icon>refresh</mat-icon>
-        </button>
-      </mat-list-item>
-    </mat-list>
-  </mat-card-content>
-</mat-card>
+<app-settings>
+  <span id="title">Settings</span>
+  <mat-list id="content">
+    <mat-list-item>
+      <mat-checkbox [(ngModel)]="drawDisabled" (change)="onChange()">Disable draw</mat-checkbox>
+    </mat-list-item>
+    <mat-list-item>
+      <mat-slide-toggle [(ngModel)]="zoomOnScroll" (change)="onChange()">Zoom on scroll</mat-slide-toggle>
+    </mat-list-item>
+    <mat-list-item>
+      <button mat-icon-button class="icon-button" (click)="zoomOut()"><mat-icon>zoom_out</mat-icon></button>
+      <mat-slider
+        [min]="zoomMin"
+        [max]="zoomMax"
+        [step]="zoomStep"
+        [(ngModel)]="zoom"
+        (input)="onChangeZoom($event.value)"
+      ></mat-slider>
+      <button mat-icon-button class="icon-button" (click)="zoomIn()"><mat-icon>zoom_in</mat-icon></button>
+      <button mat-icon-button class="icon-button" [disabled]="zoom === 1" (click)="zoomReset()">
+        <mat-icon>refresh</mat-icon>
+      </button>
+    </mat-list-item>
+  </mat-list>
+</app-settings>

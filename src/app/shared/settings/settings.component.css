@@ -1,0 +1,10 @@
+mat-card.hidden-card {
+  padding: 0;
+}
+
+mat-card-title button {
+  top: -4px;
+  width: 24px;
+  height: 24px;
+  line-height: 24px;
+}
