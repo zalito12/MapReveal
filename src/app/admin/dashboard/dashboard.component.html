@@ -1,0 +1,20 @@
+<app-admin-page>
+  <section>
+    <mat-card class="example-card">
+      <mat-card-header>
+        <mat-card-title>Create new map</mat-card-title>
+      </mat-card-header>
+      <img mat-card-image src="/assets/images/map-grid.jpg" alt="Photo of a d&d dungeon map" />
+      <mat-card-content>
+        <p>
+          Create a new dungeon map for your adventures. You can create a totally new one from scratch using a grid or an
+          image as guide and adding shapes, rooms, doors, hazards... Or just upload an image file to generate it.
+        </p>
+      </mat-card-content>
+      <mat-card-actions>
+        <button mat-button [routerLink]="['/admin/create']" fragment="scratch">FROM SCRATCH</button>
+        <button mat-flat-button color="primary" [routerLink]="['/admin/create']" fragment="image">FROM IMAGE</button>
+      </mat-card-actions>
+    </mat-card>
+  </section>
+</app-admin-page>

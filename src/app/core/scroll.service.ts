@@ -2,8 +2,6 @@ import { Injectable } from '@angular/core';
 import Konva from 'konva';
 import { Vector2d } from 'konva/types/types';
 import { OnZoom } from './OnZoom';
-import { OnScroll } from './OnScroll';
-import { GlobalSettingsService } from './global-settings.service';
 import { LayerService } from './layer.service';
 import { SpeakerService } from './speaker.service';
 

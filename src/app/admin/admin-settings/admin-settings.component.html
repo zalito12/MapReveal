@@ -1,19 +1,15 @@
 <mat-card class="example-card">
-  <mat-card-title>General</mat-card-title>
+  <mat-card-title>Settings</mat-card-title>
   <mat-card-content>
     <mat-list>
       <mat-list-item>
-        <mat-checkbox [(ngModel)]="drawDisabled" (change)="onChange()"
-          >Disable draw</mat-checkbox
-        >
+        <mat-checkbox [(ngModel)]="drawDisabled" (change)="onChange()">Disable draw</mat-checkbox>
       </mat-list-item>
       <mat-list-item>
-      <mat-slide-toggle [(ngModel)]="zoomOnScroll" (change)="onChange()">Zoom on scroll</mat-slide-toggle>
-    </mat-list-item>
+        <mat-slide-toggle [(ngModel)]="zoomOnScroll" (change)="onChange()">Zoom on scroll</mat-slide-toggle>
+      </mat-list-item>
       <mat-list-item>
-        <mat-icon class="icon-button" matRipple (click)="zoomOut()"
-          >zoom_out</mat-icon
-        >
+        <button mat-icon-button class="icon-button" (click)="zoomOut()"><mat-icon>zoom_out</mat-icon></button>
         <mat-slider
           [min]="zoomMin"
           [max]="zoomMax"
@@ -21,17 +17,10 @@
           [(ngModel)]="zoom"
           (input)="onChangeZoom($event.value)"
         ></mat-slider>
-        <mat-icon class="icon-button" matRipple (click)="zoomIn()"
-          >zoom_in</mat-icon
-        >
-        <mat-icon
-          class="icon-button"
-          matRipple
-          *ngIf="zoom !== 1"
-          (click)="zoomReset()"
-          >refresh</mat-icon
-        >
-        <mat-icon *ngIf="zoom === 1"></mat-icon>
+        <button mat-icon-button class="icon-button" (click)="zoomIn()"><mat-icon>zoom_in</mat-icon></button>
+        <button mat-icon-button class="icon-button" [disabled]="zoom === 1" (click)="zoomReset()">
+          <mat-icon>refresh</mat-icon>
+        </button>
       </mat-list-item>
     </mat-list>
   </mat-card-content>

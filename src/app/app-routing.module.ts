@@ -3,7 +3,7 @@ import { Routes, RouterModule } from "@angular/router";
 
 const routes: Routes = [
   {
-    path: "create",
+    path: "admin",
     loadChildren: () => import("./admin/admin.module").then(m => m.AdminModule)
   },
   {
@@ -11,7 +11,7 @@ const routes: Routes = [
     loadChildren: () =>
       import("./player/player.module").then(m => m.PlayerModule)
   },
-  { path: "**", redirectTo: "/create" }
+  { path: "**", redirectTo: "/admin/dashboard" }
 ];
 
 @NgModule({
