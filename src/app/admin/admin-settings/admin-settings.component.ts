@@ -10,6 +10,8 @@ import { SpeakerService } from 'src/app/core/speaker.service';
   styleUrls: ['./admin-settings.component.css']
 })
 export class AdminSettingsComponent implements OnInit, OnDestroy, OnZoom {
+  public hidden: boolean = false;
+
   public drawDisabled: boolean;
 
   public zoom: number;
@@ -62,5 +64,9 @@ export class AdminSettingsComponent implements OnInit, OnDestroy, OnZoom {
 
   public onZoomChange(scale: number) {
     this.zoom = scale;
+  }
+
+  public toggle() {
+    this.hidden = !this.hidden;
   }
 }

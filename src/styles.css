@@ -9,7 +9,7 @@ body {
   font-family: Roboto, 'Helvetica Neue', sans-serif;
 }
 
-mat-card {
+mat-card.carousel {
   float: left;
   min-width: 250px;
   max-width: 400px;

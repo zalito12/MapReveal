@@ -1,5 +1,12 @@
-<mat-card class="example-card">
-  <mat-card-title>Settings</mat-card-title>
+<ng-template #hiddenSettings>
+  <mat-card class="hidden-card" (click)="toggle()">
+    <button mat-icon-button><mat-icon>keyboard_arrow_right</mat-icon></button>
+  </mat-card>
+</ng-template>
+<mat-card class="settings-card" *ngIf="!hidden; else hiddenSettings">
+  <mat-card-title (click)="toggle()">
+    <button mat-icon-button><mat-icon>keyboard_arrow_left</mat-icon></button>Settings
+  </mat-card-title>
   <mat-card-content>
     <mat-list>
       <mat-list-item>
